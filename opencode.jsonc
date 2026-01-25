@@ -20,10 +20,10 @@
   },
   "agent": {
     "build": {
-      "model": "opencode/minimax-m2.1-free",
+      "model": "google/antigravity-claude-opus-4-5-thinking-medium",
     },
     "explore": {
-      "model": "opencode/grok-code",
+      "model": "github-copilot/gpt-5-mini",
     },
   },
   "instructions": ["./instructions/explorer.md"],
