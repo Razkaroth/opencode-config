@@ -44,10 +44,23 @@ Automatically set up the beads (bd) issue tracker in the current repository with
    - Show `bd status` to display the current state
    - Report success to user with the prefix used
 
-7. **Summary**
+7. **Setup AGENTS.md file**
+   - Run `bd onboard` to get the recommended content
+   - Check if `AGENTS.md` exists in the project root
+   - If `AGENTS.md` exists:
+     - Read the current content
+     - Check if it already contains a beads/bd section
+     - If no beads section exists, append the onboard content
+     - If beads section exists, inform user it's already configured
+   - If `AGENTS.md` doesn't exist:
+     - Create new `AGENTS.md` with the onboard content
+   - Report what was done (created vs updated)
+
+8. **Summary**
    - Report that beads is initialized and ready
    - Show the prefix: "Beads initialized with prefix: <PREFIX>"
    - Remind user that git hooks are installed for auto-sync
+   - Mention that AGENTS.md has been created/updated
    - Point user to run `bd prime` for full workflow context
 
 ## Prefix Generation Examples
@@ -63,6 +76,7 @@ Automatically set up the beads (bd) issue tracker in the current repository with
 ```bash
 bd init --prefix <PREFIX>  # Initialize with custom prefix
 bd hooks install           # Install git hooks for auto-sync
+bd onboard                 # Get AGENTS.md recommended content
 bd doctor                  # Health check
 bd status                  # Overview and statistics
 bd prime                   # AI workflow context
@@ -74,3 +88,4 @@ bd prime                   # AI workflow context
 - Beads uses a `.beads/` directory with SQLite database and JSONL files
 - Auto-sync keeps the database and JSONL in sync with git operations
 - Test issues are created and deleted automatically to verify functionality
+- AGENTS.md will be created or updated with beads workflow instructions

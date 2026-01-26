@@ -1,9 +1,9 @@
 {
   "port": 4220,
   "agents": {
-    "octto": { "model": "google/antigravity-claude-opus-4-5-thinking-medium" },
+    "octto": { "model": "google/antigravity-claude-sonnet-4-5" },
     "bootstrapper": {
-      "model": "google/antigravity-claude-opus-4-5-thinking-medium"
+      "model": "google/antigravity-claude-sonnet-4-5"
     },
     "probe": { "model": "google/antigravity-claude-sonnet-4-5" }
   }
