@@ -38,7 +38,7 @@
   },
   "agent": {
     "build": {
-      "model": "google/antigravity-claude-opus-4-5-thinking-medium",
+      "model": "google/gemini-3-pro-low",
     },
     "explore": {
       "model": "github-copilot/gpt-5-mini",
