@@ -5,6 +5,7 @@
     "octto",
     "@mohak34/opencode-notifier@latest",
     "opencode-beads",
+    "@plannotator/opencode@latest",
     //  "oh-my-opencode"
   ],
   "mcp": {
