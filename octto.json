@@ -1,10 +1,10 @@
 {
   "port": 4220,
   "agents": {
-    "octto": { "model": "google/antigravity-claude-sonnet-4-5" },
+    "octto": { "model": "google/gemini-3-pro-low" },
     "bootstrapper": {
-      "model": "google/antigravity-claude-sonnet-4-5"
+      "model": "google/gemini-3-pro-high"
     },
-    "probe": { "model": "google/antigravity-claude-sonnet-4-5" }
+    "probe": { "model": "google/gemini-3-pro-low" }
   }
 }
