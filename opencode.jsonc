@@ -18,6 +18,22 @@
       "command": ["beads-mcp"],
       "enabled": true,
     },
+    "playwright": {
+      "type": "local",
+      "command": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "--init",
+        "mcr.microsoft.com/playwright/mcp",
+      ],
+      "enabled": true,
+      // "environment": {
+      //   "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS": "true",
+      //   "PLAYWRIGHT_HOST_PLATFORM_OVERRIDE": "ubuntu-24.04",
+      // },
+    },
   },
   "agent": {
     "build": {
