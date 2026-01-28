@@ -40,6 +40,8 @@ import {
 	initStateDb,
 	removeSession,
 	setPendingDelete,
+	branchToFolderName,
+	resolveWorkspaceRoot,
 } from "./worktree/state"
 import { openTerminal } from "./worktree/terminal"
 
@@ -87,7 +89,7 @@ function isValidBranchName(name: string): boolean {
 	return true
 }
 
-const branchNameSchema = z
+const baseBranchNameSchema = z
 	.string()
 	.min(1, "Branch name cannot be empty")
 	.refine((name) => !name.startsWith("-"), {
@@ -113,6 +115,11 @@ const branchNameSchema = z
 	.refine((name) => isValidBranchName(name), "Contains invalid git ref characters")
 	.refine((name) => !name.startsWith(".") && !name.endsWith("."), "Cannot start or end with dot")
 	.refine((name) => !name.endsWith(".lock"), "Cannot end with .lock")
+
+const branchNameSchema = baseBranchNameSchema.refine(
+	(name) => /^[^/]+\/[^/]+\/[^/]+$/.test(name),
+	"Branch name must be <prefix>/<kind>/<name>",
+)
 
 /**
  * Worktree plugin configuration schema.
@@ -460,6 +467,49 @@ async function createWorktree(
 	}
 }
 
+async function resolvePrefix(workspaceRoot: string, log: Logger): Promise<string> {
+	const prefixPath = path.join(workspaceRoot, ".prefix")
+	try {
+		const file = Bun.file(prefixPath)
+		if (await file.exists()) {
+			const raw = (await file.text()).trim()
+			if (raw) return raw
+		}
+	} catch (error) {
+		log.warn(`[worktree] Failed to read .prefix: ${error}`)
+	}
+
+	const repoName = path.basename(workspaceRoot)
+	const derived = repoName.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 4) || "PROJ"
+	try {
+		await Bun.write(prefixPath, `${derived}\n`)
+		log.info(`[worktree] Wrote derived prefix to ${prefixPath}: ${derived}`)
+	} catch (error) {
+		log.warn(`[worktree] Failed to write .prefix: ${error}`)
+	}
+	log.warn(`[worktree] .prefix missing, derived prefix: ${derived}`)
+	return derived
+}
+
+function normalizeWorktreeBranch(
+	inputBranch: string,
+	prefix: string,
+): Result<string, string> {
+	const trimmed = inputBranch.trim()
+	if (!trimmed) return Result.err("Branch cannot be empty")
+	const parts = trimmed.split("/")
+	if (parts.length === 3) {
+		if (parts[0] !== prefix) {
+			return Result.err(`Branch prefix must be '${prefix}'`)
+		}
+		return Result.ok(trimmed)
+	}
+	if (parts.length === 2) {
+		return Result.ok(`${prefix}/${trimmed}`)
+	}
+	return Result.err("Branch must be <kind>/<name> or <prefix>/<kind>/<name>")
+}
+
 async function removeWorktree(
 	repoRoot: string,
 	worktreePath: string,
@@ -702,29 +752,38 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 				args: {
 					branch: tool.schema
 						.string()
-						.describe("Branch name for the worktree (e.g., 'feature/dark-mode')"),
+						.describe("Branch name or kind/name (prefix is auto-added)"),
 					baseBranch: tool.schema
 						.string()
 						.optional()
 						.describe("Base branch to create from (defaults to HEAD)"),
 				},
 				async execute(args, toolCtx) {
+					const workspaceRoot = resolveWorkspaceRoot(directory)
+					const prefix = await resolvePrefix(workspaceRoot, log)
+					const normalized = normalizeWorktreeBranch(args.branch, prefix)
+					if (!normalized.ok) {
+						return `❌ ${normalized.error}`
+					}
+
 					// Validate branch name at boundary
-					const branchResult = branchNameSchema.safeParse(args.branch)
+					const branchResult = branchNameSchema.safeParse(normalized.value)
 					if (!branchResult.success) {
 						return `❌ Invalid branch name: ${branchResult.error.issues[0]?.message}`
 					}
 
 					// Validate base branch name at boundary
 					if (args.baseBranch) {
-						const baseResult = branchNameSchema.safeParse(args.baseBranch)
+						const baseResult = baseBranchNameSchema.safeParse(args.baseBranch)
 						if (!baseResult.success) {
 							return `❌ Invalid base branch name: ${baseResult.error.issues[0]?.message}`
 						}
 					}
 
+					const branch = normalized.value
+
 					// Create worktree
-					const result = await createWorktree(directory, args.branch, args.baseBranch)
+					const result = await createWorktree(directory, branch, args.baseBranch)
 					if (!result.ok) {
 						return `Failed to create worktree: ${result.error}`
 					}
@@ -733,7 +792,10 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
 					// Sync files from main worktree
 					const worktreeConfig = await loadWorktreeConfig(directory, log)
-					const mainWorktreePath = directory // The repo root is the main worktree
+					const devWorktreePath = path.join(workspaceRoot, "dev")
+					const mainWorktreePath = (await pathExists(devWorktreePath))
+						? devWorktreePath
+						: directory
 
 					// Copy files
 					if (worktreeConfig.sync.copyFiles.length > 0) {
@@ -776,7 +838,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 					const terminalResult = await openTerminal(
 						worktreePath,
 						`opencode --session ${forkedSession.id}`,
-						args.branch,
+						branchToFolderName(branch),
 					)
 
 					if (!terminalResult.success) {
@@ -786,7 +848,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 					// Record session for tracking (used by delete flow)
 					addSession(database, {
 						id: forkedSession.id,
-						branch: args.branch,
+						branch,
 						path: worktreePath,
 						createdAt: new Date().toISOString(),
 					})

@@ -9,7 +9,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import { mkdirSync } from "node:fs"
+import { mkdirSync, readFileSync, statSync } from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
 import { z } from "zod"
@@ -78,8 +78,49 @@ export async function getWorktreePath(projectRoot: string, branch: string): Prom
 	if (!branch || typeof branch !== "string") {
 		throw new Error("branch is required")
 	}
-	const projectId = await getProjectId(projectRoot)
-	return path.join(os.homedir(), ".local", "share", "opencode", "worktree", projectId, branch)
+	const workspaceRoot = resolveWorkspaceRoot(projectRoot)
+	const folderName = branchToFolderName(branch)
+	return path.join(workspaceRoot, folderName)
+}
+
+/**
+ * Convert a branch name to a folder-safe worktree name.
+ * Example: "ACME/feat/login" -> "ACME-feat-login"
+ */
+export function branchToFolderName(branch: string): string {
+	return branch.replace(/\//g, "-")
+}
+
+/**
+ * Resolve the workspace root for a worktree-based repo.
+ * If the current projectRoot is a worktree (has a .git file), resolve the
+ * parent repo root so worktrees are created as siblings of dev/.
+ */
+export function resolveWorkspaceRoot(projectRoot: string): string {
+	const gitPath = path.join(projectRoot, ".git")
+	try {
+		const gitStat = statSync(gitPath)
+		if (gitStat.isDirectory()) {
+			return projectRoot
+		}
+		if (gitStat.isFile()) {
+			const contents = readFileSync(gitPath, "utf8").trim()
+			const match = contents.match(/^gitdir:\s*(.+)$/i)
+			if (match) {
+				const gitDirPath = match[1].trim()
+				const resolvedGitDir = path.resolve(projectRoot, gitDirPath)
+				const worktreesSegment = `${path.sep}.git${path.sep}worktrees${path.sep}`
+				if (resolvedGitDir.includes(worktreesSegment)) {
+					return path.resolve(resolvedGitDir, "../../..")
+				}
+				return path.resolve(resolvedGitDir, "..")
+			}
+		}
+	} catch {
+		// Fall through to projectRoot
+	}
+
+	return projectRoot
 }
 
 /**
