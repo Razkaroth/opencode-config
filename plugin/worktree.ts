@@ -473,14 +473,14 @@ async function resolvePrefix(workspaceRoot: string, log: Logger): Promise<string
 		const file = Bun.file(prefixPath)
 		if (await file.exists()) {
 			const raw = (await file.text()).trim()
-			if (raw) return raw
+			if (raw) return raw.toLowerCase()
 		}
 	} catch (error) {
 		log.warn(`[worktree] Failed to read .prefix: ${error}`)
 	}
 
 	const repoName = path.basename(workspaceRoot)
-	const derived = repoName.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 4) || "PROJ"
+	const derived = derivePrefixFromRepo(repoName)
 	try {
 		await Bun.write(prefixPath, `${derived}\n`)
 		log.info(`[worktree] Wrote derived prefix to ${prefixPath}: ${derived}`)
@@ -499,15 +499,28 @@ function normalizeWorktreeBranch(
 	if (!trimmed) return Result.err("Branch cannot be empty")
 	const parts = trimmed.split("/")
 	if (parts.length === 3) {
-		if (parts[0] !== prefix) {
-			return Result.err(`Branch prefix must be '${prefix}'`)
+		if (parts[0].toLowerCase() !== prefix) {
+			return Result.err(`Branch prefix must be '${prefix}' (lowercase)`)
 		}
-		return Result.ok(trimmed)
+		return Result.ok(`${prefix}/${parts[1].toLowerCase()}/${parts[2]}`)
 	}
 	if (parts.length === 2) {
-		return Result.ok(`${prefix}/${trimmed}`)
+		return Result.ok(`${prefix}/${parts[0].toLowerCase()}/${parts[1]}`)
 	}
 	return Result.err("Branch must be <kind>/<name> or <prefix>/<kind>/<name>")
+}
+
+function derivePrefixFromRepo(repoName: string): string {
+	const sanitized = repoName.replace(/[^A-Za-z0-9\s-]/g, " ").trim()
+	let tokens = sanitized.split(/\s+/).filter(Boolean)
+	if (tokens.length <= 1) {
+		tokens = repoName.split("-").filter(Boolean)
+	}
+	if (tokens.length > 1) {
+		const letters = tokens.map((token) => token[0].toLowerCase()).join("")
+		return letters.slice(0, 4) || letters.toLowerCase()
+	}
+	return (repoName.replace(/[^A-Za-z]/g, "").slice(0, 4) || "proj").toLowerCase()
 }
 
 async function removeWorktree(

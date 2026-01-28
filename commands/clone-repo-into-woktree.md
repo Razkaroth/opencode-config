@@ -22,7 +22,7 @@ Protocol:
 
 4. Prefix and secrets:
    - If beads is available, use it to determine the project prefix.
-   - Otherwise, derive a prefix from `repo_name` by uppercasing and truncating to 4 ASCII letters, and write it to `<repo_name>/.prefix`.
+   - Otherwise, derive a prefix from `repo_name` by first splitting on spaces (if present) or on hyphens (if there are no spaces) and concatenating the first letters of each segment. Keep the result lowercase, truncate to 4 letters if needed, and write it to `<repo_name>/.prefix`. If no spaces or hyphens exist, fall back to taking the first up to 4 lowercase ASCII letters of the name.
 
 5. Branch setup:
    - Detect whether `main` or `master` exists in the bare repo.

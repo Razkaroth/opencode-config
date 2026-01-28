@@ -8,7 +8,7 @@ Target layout:
 <repo-name>/
   - dev/                (dev branch)
   - main/ or master/    (main or master branch)
-  - <prefix>-<kind>-<featureName>/   (feature worktrees)
+   - <prefix>-<kind>-<featureName>/   (feature worktrees, prefix lowercase)
 
 Protocol:
 1. Resolve context:
@@ -27,8 +27,8 @@ Protocol:
 
 4. Secrets and prefix:
    - If `<repo-name>/dev/.secrets.env` exists, move it to `<repo-name>/.secrets.env`.
-   - If beads is available, use it to determine the project prefix.
-   - Otherwise, derive a prefix from `repo_name` by uppercasing and truncating to 4 ASCII letters, and write it to `<repo-name>/.prefix`.
+    - If beads is available, use it to determine the project prefix.
+    - Otherwise, derive a prefix from `repo_name` by first splitting on spaces (if present) or on hyphens (if there are no spaces) and concatenating the first letters of each segment. Keep the result lowercase, truncate to 4 letters if needed, and write it to `<repo-name>/.prefix`. If no spaces or hyphens exist, fall back to taking the first up to 4 lowercase ASCII letters of the name.
 
 5. Branch setup:
    - Check if a `dev` branch exists. If not, create it from `main` or `master`.
@@ -45,8 +45,8 @@ Protocol:
    - If a worktree already exists for a target folder, skip it and report.
 
 Examples:
-- `feature/login` -> `ACME-feat-login`
-- `fix/crash` -> `ACME-fix-crash`
-- `chore/cleanup` -> `ACME-chore-cleanup`
+- `feature/login` -> `acme-feat-login`
+- `fix/crash` -> `acme-fix-crash`
+- `chore/cleanup` -> `acme-chore-cleanup`
 
 Return a concise summary of the actions taken (moves, created branches, created worktrees, skipped items).
