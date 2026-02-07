@@ -92,17 +92,29 @@ export function branchToFolderName(branch: string): string {
 }
 
 /**
- * Resolve the workspace root for a worktree-based repo.
- * If the current projectRoot is a worktree (has a .git file), resolve the
- * parent repo root so worktrees are created as siblings of dev/.
+ * Resolve the "workspace root" for storing worktrees.
+ *
+ * New behavior: worktrees live next to the repository directory (as siblings),
+ * not inside the repository directory.
+ *
+ * Example desired layout:
+ *   ProjectId/
+ *     dev/        (git root; contains .git)
+ *     <worktrees>/ (sibling directories created by this plugin)
  */
 export function resolveWorkspaceRoot(projectRoot: string): string {
 	const gitPath = path.join(projectRoot, ".git")
 	try {
 		const gitStat = statSync(gitPath)
+
+		// Normal repo checkout: .git is a directory within projectRoot.
+		// Create worktrees as siblings of projectRoot.
 		if (gitStat.isDirectory()) {
-			return projectRoot
+			return path.dirname(projectRoot)
 		}
+
+		// Worktree checkout: .git is a file pointing at the shared repo.
+		// Resolve the real repo root, then place new worktrees as siblings of it.
 		if (gitStat.isFile()) {
 			const contents = readFileSync(gitPath, "utf8").trim()
 			const match = contents.match(/^gitdir:\s*(.+)$/i)
@@ -110,16 +122,19 @@ export function resolveWorkspaceRoot(projectRoot: string): string {
 				const gitDirPath = match[1].trim()
 				const resolvedGitDir = path.resolve(projectRoot, gitDirPath)
 				const worktreesSegment = `${path.sep}.git${path.sep}worktrees${path.sep}`
-				if (resolvedGitDir.includes(worktreesSegment)) {
-					return path.resolve(resolvedGitDir, "../../..")
-				}
-				return path.resolve(resolvedGitDir, "..")
+
+				const repoRoot = resolvedGitDir.includes(worktreesSegment)
+					? path.resolve(resolvedGitDir, "../../..")
+					: path.resolve(resolvedGitDir, "..")
+
+				return path.dirname(repoRoot)
 			}
 		}
 	} catch {
-		// Fall through to projectRoot
+		// Fall through
 	}
 
+	// Fallback: if we cannot detect git metadata, preserve old behavior.
 	return projectRoot
 }
 

@@ -443,6 +443,11 @@ async function branchExists(cwd: string, branch: string): Promise<boolean> {
 	return result.ok
 }
 
+async function localBranchExists(cwd: string, branch: string): Promise<boolean> {
+	const result = await git(["show-ref", "--verify", `refs/heads/${branch}`], cwd)
+	return result.ok
+}
+
 async function createWorktree(
 	repoRoot: string,
 	branch: string,
@@ -859,6 +864,101 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 					}
 
 					// Record session for tracking (used by delete flow)
+					addSession(database, {
+						id: forkedSession.id,
+						branch,
+						path: worktreePath,
+						createdAt: new Date().toISOString(),
+					})
+
+					return `Worktree created at ${worktreePath}\n\nA new terminal has been opened with OpenCode.`
+				},
+			}),
+
+			worktree_create_existing: tool({
+				description:
+					"Create a new git worktree for an existing local branch. Uses the branch name as provided (no prefix/kind/name generation).",
+				args: {
+					branch: tool.schema
+						.string()
+						.describe("Existing local branch name to check out into a worktree"),
+				},
+				async execute(args, toolCtx) {
+					const branch = args.branch.trim()
+					if (!branch) return "❌ Branch cannot be empty"
+
+					// Validate branch name at boundary (security + sanity)
+					const branchResult = baseBranchNameSchema.safeParse(branch)
+					if (!branchResult.success) {
+						return `❌ Invalid branch name: ${branchResult.error.issues[0]?.message}`
+					}
+
+					// Ensure branch exists locally; this tool does not create branches.
+					const existsLocally = await localBranchExists(directory, branch)
+					if (!existsLocally) {
+						return `❌ Branch does not exist locally: ${branch}`
+					}
+
+					const workspaceRoot = resolveWorkspaceRoot(directory)
+
+					// Create worktree
+					const result = await createWorktree(directory, branch)
+					if (!result.ok) {
+						return `Failed to create worktree: ${result.error}`
+					}
+
+					const worktreePath = result.value
+
+					// Sync files from main worktree
+					const worktreeConfig = await loadWorktreeConfig(directory, log)
+					const devWorktreePath = path.join(workspaceRoot, "dev")
+					const mainWorktreePath = (await pathExists(devWorktreePath))
+						? devWorktreePath
+						: directory
+
+					if (worktreeConfig.sync.copyFiles.length > 0) {
+						await copyFiles(mainWorktreePath, worktreePath, worktreeConfig.sync.copyFiles, log)
+					}
+
+					if (worktreeConfig.sync.symlinkDirs.length > 0) {
+						await symlinkDirs(mainWorktreePath, worktreePath, worktreeConfig.sync.symlinkDirs, log)
+					}
+
+					if (worktreeConfig.hooks.postCreate.length > 0) {
+						await runHooks(worktreePath, worktreeConfig.hooks.postCreate, log)
+					}
+
+					// Fork session with context and open terminal
+					const projectId = await getProjectId(worktreePath, client)
+					const { forkedSession, planCopied, delegationsCopied } = await forkWithContext(
+						client,
+						toolCtx.sessionID,
+						projectId,
+						async (sid) => {
+							let currentId = sid
+							for (let depth = 0; depth < MAX_SESSION_CHAIN_DEPTH; depth++) {
+								const session = await client.session.get({ path: { id: currentId } })
+								if (!session.data?.parentID) return currentId
+								currentId = session.data.parentID
+							}
+							return currentId
+						},
+					)
+
+					log.debug(
+						`Forked session ${forkedSession.id}, plan: ${planCopied}, delegations: ${delegationsCopied}`,
+					)
+
+					const terminalResult = await openTerminal(
+						worktreePath,
+						`opencode --session ${forkedSession.id}`,
+						branchToFolderName(branch),
+					)
+
+					if (!terminalResult.success) {
+						log.warn(`[worktree] Failed to open terminal: ${terminalResult.error}`)
+					}
+
 					addSession(database, {
 						id: forkedSession.id,
 						branch,

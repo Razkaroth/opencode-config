@@ -1,5 +1,5 @@
 ---
-description: Clone a repo into worktree layout (bare + gh)
+description: Clone a repo into worktree layout (prefix folder + gh)
 agent: build
 ---
 
@@ -10,32 +10,32 @@ Protocol:
 1. Resolve context:
    - Ask for the GitHub repo (OWNER/REPO or URL) and the target parent directory.
    - Determine `repo_name` from the repo slug.
-   - If the target `<repo_name>/` already exists, ask before proceeding.
+   - Ask whether you should use a prefix or the repo_name should be used. If the user provides one, use it verbatim (no transformations).
+   - If the target `<repo_name/prefix>/` already exists, ask before proceeding.
 
-2. Bare clone with gh:
-   - Use `gh repo clone <repo> <repo_name>.git -- --bare` in the target parent directory.
-   - If gh auth is required, instruct the user to run `gh auth login` and retry.
+2. Clone default branch into dev:
+   - Identify the default branch via `gh repo view <repo> --json defaultBranchRef --jq .defaultBranchRef.name`.
+   - Create the folder structure `<repo_name|prefix>/` and `<repo_name|prefix>/dev/`.
+   - Run a normal clone of the default branch into `<repo_name|prefix>/dev/` using `gh repo clone`.
+   - Do not use bare repositories.
 
-3. Create workspace layout:
-   - Create `<repo_name>/` and move `<repo_name>.git` to `<repo_name>/.git`.
-   - Do not run a regular `git clone`. Use only the bare repo you just created.
+3. Worktree safety:
+   - From this point on, run all git commands with `workdir` set to `<repo_name|prefix>/dev`.
+   - Do not run any git commands from outside the `dev` worktree to avoid conflicts.
+   - Do not add or remove remotes.
 
-4. Prefix and secrets:
-   - If beads is available, use it to determine the project prefix.
-   - Otherwise, derive a prefix from `repo_name` by first splitting on spaces (if present) or on hyphens (if there are no spaces) and concatenating the first letters of each segment. Keep the result lowercase, truncate to 4 letters if needed, and write it to `<repo_name>/.prefix`. If no spaces or hyphens exist, fall back to taking the first up to 4 lowercase ASCII letters of the name.
+4. Prefix persistence:
+   - Write the prefix to `<repo_name|prefix>/.prefix`.
+   - If the file already exists and differs, stop and ask before overwriting.
 
 5. Branch setup:
-   - Detect whether `main` or `master` exists in the bare repo.
-   - Ensure a `dev` branch exists; if not, create it from `main` or `master`.
-   - Create worktrees for `dev/` and for the default branch (`main/` or `master/`) as siblings under `<repo_name>/`.
-   - Ensure the worktree folder names are exactly `dev` and `main`/`master` (no prefix).
+   - List all branches (local + remote) and exclude `beads-sync`.
+   - Ask which non-default branches should get worktrees.
+   - If a selected branch exists only on the remote, create a local tracking branch before adding the worktree.
 
-6. Feature worktrees:
-   - List branches (exclude `beads-sync`).
-   - Ask which branches to create worktrees for.
-   - Map each selected branch to `<prefix>-<kind>-<featureName>` using the same inference rules as @commands/worktree-migrate.md.
-   - If a selected branch only exists on the remote, create a local tracking branch before adding the worktree.
-   - Create feature worktrees as siblings of `dev/`.
+6. Worktree layout:
+   - Create worktrees as siblings of `dev/` inside `<repo_name|prefix>/`.
+   - Each worktree folder name must match its branch name exactly (no renames, no extra prefixes).
    - If a target folder already exists, skip and report.
 
-Return a concise summary of actions taken (clone path, moved git dir, created branches, created worktrees, skipped items).
+Return a concise summary of actions taken (clone path, prefix used, default branch, created worktrees, skipped items).

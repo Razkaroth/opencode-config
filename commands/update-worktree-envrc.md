@@ -95,6 +95,8 @@ export NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
 export DEVELOPER=raz
 ```
 
+Before applying the template, inspect the current `.envrc` (or one from another worktree) and copy over any real values for the placeholder fields such as the Clerk domain, publishable keys, and Stripe key so the migration preserves secrets. Only leave `<your-...>` placeholders when a value is intentionally cleared or missing.
+
 Execution steps:
 1. Locate the repo root and worktree layout. Determine whether `dev` exists; otherwise use `main` or `master`.
 2. Update `.envrc` in that worktree using the template above.
