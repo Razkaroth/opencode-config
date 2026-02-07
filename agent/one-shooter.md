@@ -33,7 +33,7 @@ description: >-
 
   </example>
 mode: all
-model: google/antigravity-gemini-3-flash
+model: openai/gpt-5.1-codex-mini
 tools:
   todowrite: false
   todoread: false
