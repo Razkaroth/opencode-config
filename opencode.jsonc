@@ -1,23 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "opencode-antigravity-auth@1.4.6",
-    "octto",
+    "opencode-antigravity-auth@1.5.1",
+    // "octto",
     "@mohak34/opencode-notifier@latest",
-    // "opencode-beads",
     "@plannotator/opencode@latest",
-    // "opencode-elf@latest",
-    //  "oh-my-opencode"
   ],
   "mcp": {
     "context7": {
       "type": "local",
       "command": ["npx", "-y", "@upstash/context7-mcp"],
-      "enabled": true,
-    },
-    "beads": {
-      "type": "local",
-      "command": ["beads-mcp"],
       "enabled": true,
     },
     "playwright": {
@@ -31,18 +23,16 @@
         "mcr.microsoft.com/playwright/mcp",
       ],
       "enabled": true,
-      // "environment": {
-      //   "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS": "true",
-      //   "PLAYWRIGHT_HOST_PLATFORM_OVERRIDE": "ubuntu-24.04",
-      // },
     },
   },
   "agent": {
     "plan": {
-      "model": "openai/gpt-5.2-codex",
+      "model": "openai/gpt-5.3-codex-spark",
+      "variant": "high",
     },
     "build": {
-      "model": "openai/gpt-5.1-codex-mini",
+      "model": "openai/gpt-5.3-codex-spark",
+      "variant": "low",
     },
     "explore": {
       "model": "github-copilot/gpt-5-mini",
