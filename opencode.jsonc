@@ -25,6 +25,7 @@
     },
     "explore": {
       "model": "github-copilot/gpt-5-mini",
+      "prompt": "{file:./prompt_overrides/explorer.md}",
     },
   },
   // "instructions": ["./instructions/explorer.md"],
