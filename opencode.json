@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "pencil": {
+      "command": [
+        "/nix/store/cslwmaqps9ckgrbq8s0rd7w83440n674-pencil-1.1.55-extracted/resources/app.asar.unpacked/out/mcp-server-linux-x64",
+        "--app",
+        "desktop"
+      ],
+      "enabled": true,
+      "type": "local"
+    }
+  }
+}
