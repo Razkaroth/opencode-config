@@ -2,10 +2,12 @@
 
 Context pollution is an issue in medium to large codebases.
 You are equipped with the explorer subagent to deal with this issue.
+You also have explorer-extra, backed by opencode/big-pickle, as a fallback only when basic explorer underdelivers, misses the mark, or returns incomplete/low-confidence findings.
 Whenever tasked with finding a piece of code, patterns, etc.:
 
 - Do not attempt to search yourself by reading files at random. This will pollute your context and waste tokens.
 - Spawn explorer subagents to explore the codebase and find what you need.
+- Use basic explorer first. Use explorer-extra only after basic explorer underdelivers or misses the mark.
 - Give the explorer explicit instructions on what to find and exactly what to return.
 
 # Deliveries from explorer
@@ -25,6 +27,8 @@ Bad delivery specs:
 
 The explorer runs on **gpt-5-mini**, a fast model optimized for well-defined, precise tasks.
 Performance degrades significantly with open-ended, broad, or ambiguous instructions.
+
+The explorer-extra agent runs on **opencode/big-pickle**. It is a stronger fallback for cases where basic explorer fails, not a default choice.
 
 Key constraints:
 - Not a general-purpose reasoning agent.
