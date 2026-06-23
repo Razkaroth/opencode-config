@@ -1,8 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "@mohak34/opencode-notifier@latest",
-    "@plannotator/opencode@latest",
+    "@mohak34/opencode-notifier@0.2.8",
+    "@plannotator/opencode@0.21.1",
   ],
   "mcp": {
     "context7": {
