@@ -3,7 +3,7 @@
   "mcp": {
     "pencil": {
       "command": [
-        "/nix/store/cslwmaqps9ckgrbq8s0rd7w83440n674-pencil-1.1.55-extracted/resources/app.asar.unpacked/out/mcp-server-linux-x64",
+        "/nix/store/d0gnzwja7nvc2ac591ssxv2zk62wjpa5-pencil-1.1.55-extracted/resources/app.asar.unpacked/out/mcp-server-linux-x64",
         "--app",
         "desktop"
       ],
