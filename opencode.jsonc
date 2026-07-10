@@ -24,7 +24,7 @@
       "model": "openai/gpt-5.6-terra",
     },
     "explore": {
-      "model": "opencode-go/deepseek-v4-flash",
+      "model": "opencode/deepseek-v4-flash-free",
       "prompt": "{file:/home/raz/.config/opencode/prompt_overrides/explorer.md}",
     },
   },
