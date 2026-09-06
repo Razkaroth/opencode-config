@@ -10,11 +10,6 @@
       "command": ["npx", "-y", "@upstash/context7-mcp"],
       "enabled": true,
     },
-    "playwright": {
-      "type": "local",
-      "command": ["playwright-mcp"],
-      "enabled": true,
-    },
   },
   "agent": {
     "plan": {
